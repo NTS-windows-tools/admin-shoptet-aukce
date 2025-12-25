@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Aukční systém</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .modal-overlay { background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); }
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen font-sans text-slate-900">
+
+    <div class="max-w-6xl mx-auto p-4 md:p-8">
+        <header class="mb-10 text-center md:text-left">
+            <h1 class="text-4xl font-extrabold text-slate-800 tracking-tight">Vítejte, admin! Co chcete udělat?</h1>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+            <button onclick="openAuctionModal()" class="group bg-blue-600 hover:bg-blue-700 text-white p-8 rounded-2xl shadow-xl transition-all hover:-translate-y-1">
+                <i class="fas fa-plus-circle text-4xl mb-4 block group-hover:scale-110 transition-transform"></i>
+                <span class="text-2xl font-bold">Založit novou aukci</span>
+            </button>
+            <button onclick="document.getElementById('seznam-sekce').scrollIntoView({behavior:'smooth'})" class="group bg-white border-2 border-blue-600 text-blue-600 p-8 rounded-2xl shadow-lg hover:bg-blue-50 transition-all">
+                <i class="fas fa-list-check text-4xl mb-4 block group-hover:rotate-6 transition-transform"></i>
+                <span class="text-2xl font-bold">Správa stávajících aukcí</span>
+            </button>
+	    <button onclick="window.open('https://nts-windows-tools.github.io/hefgkrhdehg56rhgt87r9tz65rzj/?user=zadavac', '_blank')" class="group bg-white border-2 border-blue-600 text-blue-600 p-8 rounded-2xl shadow-lg hover:bg-blue-50 transition-all">
+                <i class="fas fa-gavel text-4xl mb-4 block group-hover:rotate-12 transition-transform"></i>
+                <span class="text-2xl font-bold">Aukce - Zadávač - Reality</span>
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16">
+            <section>
+                <h2 class="text-xl font-bold mb-6 flex items-center gap-2"><i class="fas fa-trophy text-yellow-500"></i> Odeslat výhry:</h2>
+                <div id="winners-list" class="space-y-4 text-sm">
+                    </div>
+            </section>
+            <section>
+                <h2 class="text-xl font-bold mb-6 flex items-center gap-2"><i class="fas fa-hand-holding-dollar text-green-500"></i> Nabídky cen:</h2>
+                <div id="offers-list" class="space-y-4 text-sm">
+                    </div>
+            </section>
+        </div>
+
+        <hr class="border-slate-200 mb-12">
+
+        <section id="seznam-sekce">
+            <h2 class="text-2xl font-bold mb-8 italic text-slate-700">Přehled všech aukcí</h2>
+            <div id="all-auctions-grid" class="flex flex-wrap gap-4">
+                </div>
+        </section>
+    </div>
+
+    <div id="auctionModal" class="hidden fixed inset-0 z-50 modal-overlay flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+            <div class="p-6 border-b flex justify-between items-center bg-slate-50">
+                <h2 id="modalHeader" class="text-2xl font-bold">Zadání nové aukce</h2>
+                <button onclick="closeAuctionModal()" class="text-slate-400 hover:text-red-500 text-2xl">&times;</button>
+            </div>
+            <form id="auctionForm" class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+                <input type="hidden" id="edit-id">
+                
+                <div>
+                    <label class="block text-sm font-semibold mb-1">Nadpis produktu (název):</label>
+                    <input type="text" id="f-title" required class="w-full border-2 border-slate-200 rounded-lg px-4 py-2 focus:border-blue-500 outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold mb-1">Popis produktu:</label>
+                    <textarea id="f-desc" rows="4" required class="w-full border-2 border-slate-200 rounded-lg px-4 py-2 focus:border-blue-500 outline-none"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold mb-1">Foto produktu (odkaz na foto):</label>
+                    <input type="url" id="f-img" required class="w-full border-2 border-slate-200 rounded-lg px-4 py-2 focus:border-blue-500 outline-none" placeholder="https://...">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold mb-1">Stav produktu:</label>
+                    <select id="f-status" class="w-full border-2 border-slate-200 rounded-lg px-4 py-2 outline-none">
+                        <option>Nový produkt: nepoužívaný, včetně všeho příslušenství</option>
+                        <option>Krátce používaný produkt, jako nový</option>
+                        <option>Používaný produkt, bez známek použití</option>
+                        <option>Používaný produkt, nesoucí známky použití, ale je plně funkční</option>
+                        <option>Repasovaný, opravený produkt, plně funkční</option>
+                        <option>Poškozeno, nefunkční, má závady, určeno spíše na náhradní dly</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold mb-1">Typ aukce:</label>
+                        <select id="f-type" class="w-full border-2 border-slate-200 rounded-lg px-4 py-2 outline-none">
+                            <option value="auction">Běžná aukce</option>
+                            <option value="offer">Nabídnout cenu</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold mb-1">Počáteční cena:</label>
+                        <div class="flex items-center gap-2">
+                            <input type="number" id="f-price" required class="w-full border-2 border-slate-200 rounded-lg px-4 py-2 outline-none">
+                            <span class="font-bold">Kč</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold mb-1">Datum do skončení:</label>
+                    <input type="datetime-local" id="f-date" required class="w-full border-2 border-slate-200 rounded-lg px-4 py-2 outline-none">
+                </div>
+
+                <div class="pt-6 flex gap-4 border-t">
+                    <button type="submit" class="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition-colors">Vystavit a uložit</button>
+                    <button type="button" onclick="closeAuctionModal()" class="px-6 py-3 border-2 border-slate-200 font-bold rounded-xl hover:bg-slate-100">Zrušit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="deleteModal" class="hidden fixed inset-0 z-[60] modal-overlay flex items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-2xl max-w-sm w-full text-center shadow-2xl">
+            <div class="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <h3 class="text-xl font-bold mb-2" id="delTitle">Opravdu chcete aukci smazat?</h3>
+            <p class="text-slate-500 mb-8" id="delText">Smazání aukce je nevratné! Přesto smazat?</p>
+            <div class="flex gap-4">
+                <button onclick="document.getElementById('deleteModal').classList.add('hidden')" class="flex-1 py-3 bg-slate-200 font-bold rounded-xl hover:bg-slate-300">Zpět</button>
+                <button id="confirmDeleteBtn" class="flex-1 py-3 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700">Smazat</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, set, push, onValue, update, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDJyO5mRqwC7-7-k0i_9ioZAeHNRwQym70",
+            authDomain: "aukce-27c0f.firebaseapp.com",
+            databaseURL: "https://aukce-27c0f-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "aukce-27c0f",
+            storageBucket: "aukce-27c0f.firebasestorage.app",
+            messagingSenderId: "1024577063970",
+            appId: "1:1024577063970:web:f0a5940b784a4938ec8e7b"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // MODAL LOGIKA
+        window.openAuctionModal = (id = null) => {
+            const form = document.getElementById('auctionForm');
+            form.reset();
+            document.getElementById('edit-id').value = id || '';
+            document.getElementById('modalHeader').innerText = id ? "Úprava aukce" : "Zadání nové aukce";
+            
+            if (id) {
+                onValue(ref(db, `auctions/${id}`), (snap) => {
+                    const d = snap.val();
+                    if(!d) return;
+                    document.getElementById('f-title').value = d.title;
+                    document.getElementById('f-desc').value = d.desc;
+                    document.getElementById('f-img').value = d.img;
+                    document.getElementById('f-status').value = d.status;
+                    document.getElementById('f-type').value = d.type;
+                    document.getElementById('f-price').value = d.price;
+                    document.getElementById('f-date').value = d.endTime;
+                }, { onlyOnce: true });
+            }
+            document.getElementById('auctionModal').classList.remove('hidden');
+        };
+
+        window.closeAuctionModal = () => document.getElementById('auctionModal').classList.add('hidden');
+
+        // ODESLÁNÍ FORMULÁŘE
+        document.getElementById('auctionForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('edit-id').value;
+            const endTime = new Date(document.getElementById('f-date').value);
+
+            if (endTime < new Date()) {
+                alert("Varování: Datum a čas musí být v budoucnosti!");
+                return;
+            }
+
+            const data = {
+                title: document.getElementById('f-title').value,
+                desc: document.getElementById('f-desc').value,
+                img: document.getElementById('f-img').value,
+                status: document.getElementById('f-status').value,
+                type: document.getElementById('f-type').value,
+                price: Number(document.getElementById('f-price').value),
+                endTime: document.getElementById('f-date').value,
+                currentPrice: Number(document.getElementById('f-price').value),
+                lastBidder: "",
+                offerStatus: "none" // none, pending, accepted, rejected
+            };
+
+            if (id) {
+                await update(ref(db, `auctions/${id}`), data);
+            } else {
+                await push(ref(db, 'auctions'), data);
+            }
+            closeAuctionModal();
+        };
+
+        // REALTIME LISTENER
+        onValue(ref(db, 'auctions'), (snapshot) => {
+            const data = snapshot.val();
+            const winnersDiv = document.getElementById('winners-list');
+            const offersDiv = document.getElementById('offers-list');
+            const allDiv = document.getElementById('all-auctions-grid');
+            
+            winnersDiv.innerHTML = ''; offersDiv.innerHTML = ''; allDiv.innerHTML = '';
+
+            if(!data) return;
+
+            Object.keys(data).forEach(id => {
+                const item = data[id];
+                const isExpired = new Date(item.endTime) < new Date();
+
+                // 1. Sekce "Správa stávajících aukcí"
+                const card = document.createElement('div');
+                card.className = "bg-white p-4 rounded-xl shadow border border-slate-200 flex items-center gap-4 transition-all hover:border-blue-300";
+                card.innerHTML = `
+                    <span class="font-bold truncate max-w-[200px]">${item.title}</span>
+                    <button onclick="openAuctionModal('${id}')" class="text-blue-500 hover:bg-blue-50 p-2 rounded-lg"><i class="fas fa-pencil"></i></button>
+                    <button onclick="confirmDelete('${id}')" class="text-red-500 hover:bg-red-50 p-2 rounded-lg"><i class="fas fa-trash-can"></i></button>
+                `;
+                allDiv.appendChild(card);
+
+                // 2. Sekce "Odeslat výhry" (skončené aukce s vítězem nebo přijaté nabídky)
+                if ((item.type === 'auction' && isExpired && item.lastBidder) || (item.offerStatus === 'accepted')) {
+                    const winCard = document.createElement('div');
+                    winCard.className = "bg-white p-4 rounded-xl border-l-4 border-green-500 shadow-sm flex justify-between items-center";
+                    winCard.innerHTML = `
+                        <div>
+                            <p class="font-bold">${item.title}</p>
+                            <p class="text-slate-600">Cena: ${item.currentPrice} Kč <span class="ml-2 text-[10px] bg-slate-100 px-2 rounded">Vítěz: ${item.lastBidder}</span></p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="openAuctionModal('${id}')" class="bg-blue-100 text-blue-700 px-3 py-1 rounded text-xs font-bold">Podrobnosti</button>
+                            <button onclick="confirmDelete('${id}', true)" class="bg-slate-800 text-white px-3 py-1 rounded text-xs font-bold">Vyřízeno</button>
+                        </div>
+                    `;
+                    winnersDiv.appendChild(winCard);
+                }
+
+                // 3. Sekce "Nabídky cen"
+                if (item.type === 'offer' && item.offerStatus === 'pending') {
+                    const offerCard = document.createElement('div');
+                    offerCard.className = "bg-white p-4 rounded-xl border-l-4 border-orange-400 shadow-sm";
+                    offerCard.innerHTML = `
+                        <p class="font-bold">${item.title}</p>
+                        <p class="text-slate-600 mb-2">Uživatel <b>${item.lastBidder}</b> nabízí: <span class="text-orange-600 font-bold">${item.currentPrice} Kč</span></p>
+                        <div class="flex gap-2">
+                            <button onclick="updateOffer('${id}', 'accepted')" class="bg-green-600 text-white px-3 py-1 rounded text-xs font-bold">Přijmout</button>
+                            <button onclick="updateOffer('${id}', 'rejected')" class="bg-red-500 text-white px-3 py-1 rounded text-xs font-bold">Odmítnout</button>
+                            <button onclick="openAuctionModal('${id}')" class="bg-slate-100 px-3 py-1 rounded text-xs font-bold ml-auto">Podrobnosti</button>
+                        </div>
+                    `;
+                    offersDiv.appendChild(offerCard);
+                }
+            });
+        });
+
+        window.confirmDelete = (id, isFinish = false) => {
+            const modal = document.getElementById('deleteModal');
+            const title = document.getElementById('delTitle');
+            const text = document.getElementById('delText');
+            
+            if (isFinish) {
+                title.innerText = "Opravdu označit jako vyřízeno a smazat?";
+                text.innerText = "Aukce bude také smazána z databáze!";
+            } else {
+                title.innerText = "Opravdu chcete aukci smazat?";
+                text.innerText = "Smazání aukce je nevratné! Přesto smazat?";
+            }
+
+            modal.classList.remove('hidden');
+            document.getElementById('confirmDeleteBtn').onclick = () => {
+                remove(ref(db, `auctions/${id}`));
+                modal.classList.add('hidden');
+            };
+        };
+
+        window.updateOffer = (id, status) => {
+            const msg = status === 'accepted' 
+                ? "Opravdu chcete nabídku přijmout? Zákazníkovi se vytvoří objednávka." 
+                : "Opravdu chcete nabídku zamítnout?";
+            
+            if (confirm(msg)) {
+                update(ref(db, `auctions/${id}`), { offerStatus: status });
+            }
+        };
+
+    </script>
+</body>
+</html>
